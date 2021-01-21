@@ -24,10 +24,11 @@ q_matrix = np.array([[[0,0,0,0],
 					[0,0,0,0],[
 					0,0,0,0]]])
 
-win_loss_states = [(2,2),(0,1),(2,1)]
+win_loss_states = [[2,2],[0,1],[2,1]]
 
 def getAllPossibleNextAction(cur_x,cur_y):
 	action = []
+	step_matrix = [x != None for x in environment_matrix[cur_pos]]
 	if cur_y>0 and environment_matrix[cur_y,cur_x].ravel:
 		action.append(0)    
 	if cur_x<2 and environment_matrix[cur_y,cur_x].ravel:
@@ -76,6 +77,7 @@ for _ in range(1000):
 		# update the q_matrix
 		if(environment_matrix[cur_pos[0],cur_pos[1]][action]):
 			q_matrix[cur_pos[0],cur_pos[1]][action] = x=q_matrix[cur_pos[0],cur_pos[1]][action] + learning_rate * (environment_matrix[cur_pos[0],cur_pos[1]][action] + discount * max(q_matrix[next_state].ravel()) - q_matrix[cur_pos[0], cur_pos[1]][action])
+			count+=1
 		# go to next state
 		cur_pos = next_state
 		
@@ -83,6 +85,7 @@ for _ in range(1000):
 	print("Episode ", _ , " done")
 print(q_matrix)
 print("Training done...")
+print(count)
 
 
 
