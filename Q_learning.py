@@ -15,4 +15,10 @@ else:
 	pass
 	#~Exploit: Select max value
 	
-Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[new_state, :]) - Q[state, action])
+#Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[new_state, :]) - Q[state, action])
+
+a = [1,1]
+b = [1,1]
+c = [1,2]
+print(a==b)
+print(a==c)
