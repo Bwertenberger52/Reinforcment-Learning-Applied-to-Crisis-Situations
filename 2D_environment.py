@@ -24,7 +24,7 @@ q_matrix = np.array([[[0,0,0,0],
 					[0,0,0,0],[
 					0,0,0,0]]])
 
-win_loss_states = [[2,2]]
+win_loss_states = [[2,2],[1,1]]
 
 def getAllPossibleNextAction(cur_x,cur_y):
 	action = []
@@ -63,8 +63,8 @@ def isGameOver(cur_x, cur_y):
 #def again(cur_pos, action):
 	#getNextState(cur_pos[0], cur_pos[1], action)
 	
-discount = .5
-learning_rate = .5
+discount = 0.2
+learning_rate = 0.5
 for _ in range(1000):
 	# get starting place
 	cur_pos = [0,0]
