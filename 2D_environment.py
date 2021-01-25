@@ -67,7 +67,7 @@ discount = 0.2
 learning_rate = 0.5
 for _ in range(1000):
 	# get starting place
-	cur_pos = [0,0]
+	cur_pos = [random.randrange(3),random.randrange(3)]
 	# while goal state is not reached
 	while(not isGameOver(cur_pos[0],cur_pos[1])):
 		# get all possible next states from cur_step
