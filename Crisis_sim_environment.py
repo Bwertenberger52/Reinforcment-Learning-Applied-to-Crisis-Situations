@@ -17,7 +17,12 @@ pos_matrix = np.zeros((20,20),dtype = int)
 # ~ turtle.update()
 for x in range(random.randrange(20)):
 	environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][1]=environment_matrix[x][19][3] = None
-print (environment_matrix)
+
+screen=turtle.getscreen()
+screen.tracer(1)
+turtle.up()
+turtle.ht()
+turtle.update()
 SUSCEPTIBLE=(0,0,1)
 INFECTED=(1,0,0)
 ZOMBIE=(0,1,0)
@@ -36,8 +41,8 @@ def getPopulation(n):
 		
 		x=random.randrange(-200,200,20)
 		y=random.randrange(-200,200,20)
-		y_index =(y+200)/20
-		x_index =(x+200)/20
+		y_index =int((y+200)/20)
+		x_index =int((x+200)/20)
 		if pos_matrix[y_index][x_index] == 0:
 			pos_matrix[y_index][x_index] = 1
 			status=SUSCEPTIBLE
@@ -60,52 +65,82 @@ def infectPopulation(population,n=1):
 			zombies.append(person)
 			n-=1
 
-# ~ def display(population):
+def display(population):
 	
-	# ~ turtle.clear()
-	# ~ turtle.goto(220,220)
-	# ~ turtle.down()
-	# ~ turtle.seth(180)
-	
-	# ~ for i in range(4):
+    turtle.clear()
+    turtle.goto(220,220)
+    turtle.down()
+    turtle.seth(180)
+    
+    for i in range(4):
 		
-		# ~ turtle.forward(440)
-		# ~ turtle.left(90)
+        turtle.forward(440)
+        turtle.left(90)
+        
+    turtle.up()
+    turtle.shapesize(2,2)
+    
+    for x,y,status in population:
 		
-	# ~ turtle.up()
-	# ~ turtle.shapesize(2,2)
-	
-	# ~ for x,y,status,direction in population:
-		
-		# ~ turtle.goto(x,y)
-		# ~ turtle.seth(direction)
-		# ~ turtle.fillcolor(status)
-		# ~ turtle.stamp()
-		
-	# ~ turtle.update()
+        turtle.goto(x,y)
+        turtle.fillcolor(status)
+        turtle.stamp()
+        
+    turtle.update()
 	
 def step(population,infectionRadius,infectionRate):
-	
+	for y in pos_matrix:
+		for x in pos_matrix:
+			print(pos_matrix[y][x])
+			if pos_matrix[y][x].all() == 1:
+				environment_matrix[y][x-1][1]=environment_matrix[y][x+1][3]=environment_matrix[y-1][x][2]=environment_matrix[y+1][x][0]=None
 	for person in population:
 		
-		x,y,status,direction=person
-			
-		for other in population:
-				
-			if other[STATUS] == ZOMBIE:
-				   pass
-			
-		if (person[STATUS]==INFECTED):
-			
-			if random.random()<.02:
-				
-				person[STATUS]=ZOMBIE
-				
-			person[X]=x
-			person[Y]=y
-			person[DIRECTION]=direction
-			
-			
+		x,y,status=person
+		x_index = int((x+200)/20)
+		y_index = int((y+200)/20)
+		discount = 0.2
+		learning_rate = 0.5
+		possible_actions = getAllPossibleNextAction(x_index,y_index)
+		action = random.choice(possible_actions)
+		next_state = getNextState(x_index, y_index, action)
+		q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + learning_rate * (environment_matrix[y_index][x_index][action] + discount * max(q_matrix[next_state].ravel()) - q_matrix[y_index][x_index][action])
+		person[X] = (next_state[0]*20)-200
+		person[Y] = (next_state[1]*20)-200
+		
+
+
+def getAllPossibleNextAction(cur_x,cur_y):
+	action = []
+	if cur_y>0 and type(environment_matrix[cur_y][cur_x][0])==int:
+		action.append(0)    
+	if cur_x<19 and type(environment_matrix[cur_y][cur_x][1])==int:
+		action.append(1)
+	if cur_y<19 and type(environment_matrix[cur_y][cur_x][2])==int:
+		action.append(2)
+	if cur_x>0 and type(environment_matrix[cur_y][cur_x][3])==int:
+		action.append(3)
+	action.append(4)
+	action.append(5)
+	return action
+		
+		
+def getNextState(cur_x, cur_y, action):
+	if (action == 0):
+		return [cur_x,cur_y - 1]
+	elif (action == 1):
+		return [cur_x + 1,cur_y]
+	elif (action == 2):
+		return [cur_x,cur_y + 1]
+	elif (action == 3):
+		return [cur_x - 1,cur_y]
+	elif (action == 4):
+		return [cur_x,cur_y]
+	elif (action == 5):
+		gather()
+		return [cur_x,cur_y]
+		
+		
 def expose(person,population,infectionRadius,infectionRate):
 	
 	x,y,status,direction=person
@@ -123,9 +158,14 @@ def expose(person,population,infectionRadius,infectionRate):
 				person[STATUS]=INFECTED
 				break
 				
+def gather():
+	pass
+	
+	
+	
 def fight(person,population, infectionRadius, infectionRate):
 	
-	x,y,status,direction=person
+	x,y,status=person
 	
 	for other in population:
 		
@@ -153,7 +193,7 @@ def census(population):
 	
 	s=i=r=z=0
 	
-	for _,_,status,_ in population:
+	for _,_,status in population:
 		
 		s+=status==SUSCEPTIBLE
 		i+=status==INFECTED
@@ -204,6 +244,5 @@ def duration(n=100,samples=10):
 	m.sort()
 	
 	return m[samples//2]
-a=getPopulation(150)
-print(a)
 
+simulation()
