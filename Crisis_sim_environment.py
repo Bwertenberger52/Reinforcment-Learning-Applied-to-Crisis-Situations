@@ -1,9 +1,10 @@
-import random
-import turtle
 import math
+import random
 import time
-import numpy as np
+import turtle
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 environment_matrix = np.zeros((20,20,6),dtype = float)
 
