@@ -14,13 +14,14 @@ pos_matrix = np.zeros((20,20),dtype = int)
 
 food_spots = []
 gathered = False
+ftime = 300
 for x in range(20):
 	environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][1]=environment_matrix[x][19][3] = None
-for i in range(8):
+for i in range(15):
 	food_x = random.randrange(20)
 	food_y = random.randrange(20)
-	environment_matrix[food_y][food_x][5] = 50
-	food_spots.append([food_x,food_y,gathered])
+	environment_matrix[food_y][food_x][5] = 100
+	food_spots.append([food_x,food_y,gathered,ftime])
 screen=turtle.getscreen()
 screen.tracer(0)
 turtle.up()
@@ -34,6 +35,8 @@ X=0
 Y=1
 STATUS=2
 n=30
+infectionsRaduis = 20
+infectionsRate = 0.75
 
 def getPopulation(n):
 	
@@ -48,7 +51,8 @@ def getPopulation(n):
 		if pos_matrix[y_index][x_index] == 0:
 			pos_matrix[y_index][x_index] = 1
 			status=SUSCEPTIBLE
-			population.append([x,y,status])
+			timer = 420
+			population.append([x,y,status,timer])
 			n-=1
 		
 	return population
@@ -82,14 +86,18 @@ def display(population,food_spots):
 	turtle.up()
  
 	
-	for x,y,gathered in food_spots:
+	for x,y,gathered,_ in food_spots:
 		turtle.shapesize(1,1)
 		turtle.shape("square")
 		turtle.goto((x*20)-200,(y*20)-200)
-		turtle.fillcolor("yellow")
+		if gathered == False:
+			turtle.fillcolor("yellow")
+		else:
+			turtle.fillcolor("grey")
+			print('eaten')
 		turtle.stamp()	
  	
-	for x,y,status in population:
+	for x,y,status,_ in population:
 		turtle.shape("circle")
 		turtle.goto(x,y)
 		turtle.fillcolor(status)
@@ -103,19 +111,26 @@ def step(population,infectionRadius,infectionRate):
 			if pos_matrix[y][x].all== 1:
 				environment_matrix[y][x-1][1]=environment_matrix[y][x+1][3]=environment_matrix[y-1][x][2]=environment_matrix[y+1][x][0]=None
 	for person in population:
-		
-		x,y,status=person
-		x_index = int((x+200)/20)
-		y_index = int((y+200)/20)
-		discount = 0.2
-		learning_rate = .5
-		possible_actions = getAllPossibleNextAction(x_index,y_index)
-		action = random.choice(possible_actions)
-		next_state = getNextState(x_index, y_index, action)
-		q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + learning_rate * (environment_matrix[y_index][x_index][action] + discount * max(q_matrix[next_state].ravel()) - q_matrix[y_index][x_index][action])
-		
-		person[X] = (next_state[0]*20)-200
-		person[Y] = (next_state[1]*20)-200
+		if person[STATUS] == SUSCEPTIBLE:
+			x,y,status,timer=person
+			x_index = int((x+200)/20)
+			y_index = int((y+200)/20)
+			discount = .3
+			learning_rate = .4
+			possible_actions = getAllPossibleNextAction(x_index,y_index)
+			action = random.choice(possible_actions)
+			next_state, act_type = getNextState(x_index, y_index, action)
+			if act_type == 1:
+				fight(person, population, infectionRadius, infectionRate)
+			if act_type == 2:
+				timer = gather(person,food_spots)
+			q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + learning_rate * (environment_matrix[y_index][x_index][action] + discount * max(q_matrix[next_state].ravel()) - q_matrix[y_index][x_index][action])
+			
+			person[X] = (next_state[0]*20)-200
+			person[Y] = (next_state[1]*20)-200
+			person[3] -= 1
+			if person[3] == 0:
+				person[2] = RECOVERED 
 
 
 def getAllPossibleNextAction(cur_x,cur_y):
@@ -128,33 +143,44 @@ def getAllPossibleNextAction(cur_x,cur_y):
 		action.append(2)
 	if cur_x>0 and type(environment_matrix[cur_y][cur_x][3])!=None:
 		action.append(3)
-	action.append(4)
+	#action.append(4)
 	action.append(5)
 	return action
 		
 		
 def getNextState(cur_x, cur_y, action):
 	if (action == 0):
-		return [cur_x,cur_y - 1]
+		return [cur_x,cur_y - 1],0
 	elif (action == 1):
-		return [cur_x + 1,cur_y]
+		return [cur_x + 1,cur_y],0
 	elif (action == 2):
-		return [cur_x,cur_y + 1]
+		return [cur_x,cur_y + 1],0
 	elif (action == 3):
-		return [cur_x - 1,cur_y]
+		return [cur_x - 1,cur_y],0
 	elif (action == 4): 
-		#fight()
-		return [cur_x,cur_y] 
-	elif (action == 5): 
-		gather() 
-		return [cur_x,cur_y] 
+		return [cur_x,cur_y],1
+	elif (action == 5):
+		return [cur_x,cur_y],2
 		
-def gather():
-	pass
+def gather(person,food_spots):
+	x,y,_,timer = person
+	for i in food_spots:
+		if i[2] == False:
+			if ((x+200)/20 in i and (y+200)/20 in i):
+				person[3] += 420
+				i[2]=True
+		if(i[3]>0):
+			i[3] -= 1
+		else:
+			i[2] = False
+			i[3]=300
+		return timer
+
+
 		
 def expose(person,population,infectionRadius,infectionRate):
 	
-	x,y,status,direction=person
+	x,y,status=person
 	zRate = 1-infectionRate
 	
 	for other in population:
@@ -174,7 +200,7 @@ def expose(person,population,infectionRadius,infectionRate):
 	
 def fight(person,population, infectionRadius, infectionRate):
 	
-	x,y,status=person
+	x,y,status,_=person
 	
 	for other in population:
 		
@@ -202,7 +228,7 @@ def census(population):
 	
 	s=i=r=z=0
 	
-	for _,_,status in population:
+	for _,_,status,_ in population:
 		
 		s+=status==SUSCEPTIBLE
 		i+=status==INFECTED
@@ -233,17 +259,16 @@ def simulation(n=100,InitialInfectionCount=1,infectionRadius=20,infectionRate=.0
 		if show:
 			display(population,food_spots)
 		count += 1
-		#if(((S[-1]==0) and (I[-1]==0)) or ((Z[-1]==0) and (I[-1]==0))):
-		if count == 1000:
-			print('Done')
+		if(((S[-1]==0) and (I[-1]==0)) or ((Z[-1]==0) and (I[-1]==0))):
 			print(q_matrix.tolist())
+			print(count)
 			break
 			
 	return S,I,R,Z
 	
 
 
-def duration(n=100,samples=10):
+def duration(n=50,samples=100):
 	
 	m=[]
 	
@@ -256,4 +281,4 @@ def duration(n=100,samples=10):
 	
 	return m[samples//2]
 
-simulation()
+duration()
