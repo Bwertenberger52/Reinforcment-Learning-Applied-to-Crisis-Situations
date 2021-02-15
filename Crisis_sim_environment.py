@@ -38,6 +38,7 @@ n=30
 infectionsRaduis = 20
 infectionsRate = 0.75
 
+
 def getPopulation(n):
 	
 	population=[]
@@ -94,7 +95,6 @@ def display(population,food_spots):
 			turtle.fillcolor("yellow")
 		else:
 			turtle.fillcolor("grey")
-			print('eaten')
 		turtle.stamp()	
  	
 	for x,y,status,_ in population:
@@ -106,12 +106,17 @@ def display(population,food_spots):
 	turtle.update()
 	
 def step(population,infectionRadius,infectionRate):
-	for y in pos_matrix:
-		for x in pos_matrix:
-			if pos_matrix[y][x].all== 1:
-				environment_matrix[y][x-1][1]=environment_matrix[y][x+1][3]=environment_matrix[y-1][x][2]=environment_matrix[y+1][x][0]=None
+	for Y in pos_matrix:
+		for X in pos_matrix:
+			if pos_matrix[Y][X].all== 1:
+				environment_matrix[Y][X-1][1]=environment_matrix[Y][X+1][3]=environment_matrix[Y-1][X][2]=environment_matrix[Y+1][X][0]=None
 	for person in population:
-		if person[STATUS] == SUSCEPTIBLE:
+		if person[STATUS] == ZOMBIE:
+			x,y,_,_ = person
+			environment_matrix[Y][X-1][4]=environment_matrix[Y][X+1][4]=environment_matrix[Y-1][X][4]=environment_matrix[Y+1][X][4]=50
+	for person in population:
+
+		if person[STATUS] == SUSCEPTIBLE or person[STATUS] == INFECTED:
 			x,y,status,timer=person
 			x_index = int((x+200)/20)
 			y_index = int((y+200)/20)
@@ -126,11 +131,46 @@ def step(population,infectionRadius,infectionRate):
 				timer = gather(person,food_spots)
 			q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + learning_rate * (environment_matrix[y_index][x_index][action] + discount * max(q_matrix[next_state].ravel()) - q_matrix[y_index][x_index][action])
 			
-			person[X] = (next_state[0]*20)-200
-			person[Y] = (next_state[1]*20)-200
+			person[0] = (next_state[0]*20)-200
+			person[1] = (next_state[1]*20)-200
+			expose(person,population,infectionRadius,infectionRate)
 			person[3] -= 1
 			if person[3] == 0:
-				person[2] = RECOVERED 
+				person[2] = RECOVERED
+			if (person[STATUS]==INFECTED):
+				if random.random()<.02:
+					person[STATUS]=ZOMBIE 
+
+		if (person[STATUS] == ZOMBIE):
+
+			for other in population:
+				
+				if other[STATUS] != ZOMBIE:
+					
+					if other[STATUS] != RECOVERED:
+						
+						i,j,*_=other
+						d=math.hypot(x-i,y-j)
+						heading = (math.degrees(math.atan2(y-j,x-i))-180)
+
+						if d<40:
+							if heading > 0:
+								if random.random() > 0.5:
+									x+=20
+								else:
+									y+=20
+							else:
+								if random.random() > 0.5:
+									x-=20
+								else:
+									y -= 20
+										
+						person[0]=x
+                        
+						person[1]=y
+			
+			
+			
 
 
 def getAllPossibleNextAction(cur_x,cur_y):
@@ -143,7 +183,7 @@ def getAllPossibleNextAction(cur_x,cur_y):
 		action.append(2)
 	if cur_x>0 and type(environment_matrix[cur_y][cur_x][3])!=None:
 		action.append(3)
-	#action.append(4)
+	action.append(4)
 	action.append(5)
 	return action
 		
@@ -180,7 +220,7 @@ def gather(person,food_spots):
 		
 def expose(person,population,infectionRadius,infectionRate):
 	
-	x,y,status=person
+	x,y,status,_=person
 	zRate = 1-infectionRate
 	
 	for other in population:
@@ -204,14 +244,14 @@ def fight(person,population, infectionRadius, infectionRate):
 	
 	for other in population:
 		
-		if other[STATUS]==SUSCEPTIBLE:
+		if other[STATUS]==ZOMBIE:
 			
 			i,j,*_=other
 			d=math.hypot(x-i,y-j)
 			
 			if d<infectionRadius and random.random()<infectionRate:
 				
-				person[STATUS]=RECOVERED
+				other[STATUS]=RECOVERED
 				break
 				
 		if other[STATUS]==INFECTED:
@@ -260,25 +300,58 @@ def simulation(n=100,InitialInfectionCount=1,infectionRadius=20,infectionRate=.0
 			display(population,food_spots)
 		count += 1
 		if(((S[-1]==0) and (I[-1]==0)) or ((Z[-1]==0) and (I[-1]==0))):
-			print(q_matrix.tolist())
-			print(count)
+			#print(q_matrix.tolist())
+			#return(count)
 			break
 			
 	return S,I,R,Z
 	
 
 
-def duration(n=50,samples=100):
+def duration(n=50,samples=1000):
 	
 	m=[]
 	
 	for i in range(samples):
 		
-		data=simulation(n=n,show=True)
-		m.append(len(data[0]))
+		data=simulation(n=n,show=False)
+		m.append(data)
+		print(data)
 		
 	m.sort()
 	
-	return m[samples//2]
+	return m[samples//2],m[samples.max()]
 
-duration()
+def end_pop(n=50, samples=1000):
+	
+	S = []
+	I = []
+	R = []
+	Z = []
+	for i in range(samples):
+	
+		data = simulation(n=n,show = False)
+		S.append(data[0])
+		I.append(data[1])
+		R.append(data[2])
+		Z.append(data[3])
+	SUS = np.array(S)
+	INF = np.array(I)
+	REC = np.array(R)
+	ZOM = np.array(Z)
+	return SUS,INF,REC,ZOM
+
+
+X_values=[]
+Y_values=[]
+for n in range(1000):
+	X_values.append(n)
+Y_values.append(end_pop(n=50,samples=1000))
+
+
+
+plt.plot(X_values,Y_values,".")
+plt.xlabel('Population Size')
+plt.ylabel('Duration (au)')
+plt.title('SIR Model Simulating Pandemic Duration')
+plt.show()
