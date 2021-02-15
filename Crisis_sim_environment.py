@@ -164,9 +164,13 @@ def step(population,infectionRadius,infectionRate):
 									x-=20
 								else:
 									y -= 20
-										
+						if x<-200 or x>200:
+							 x=y=0
+						if y>200 or y<-200:
+							x=y=0
+						if isinstance(X,list):
+							print(X)
 						person[0]=x
-                        
 						person[1]=y
 			
 			
@@ -330,15 +334,17 @@ def end_pop(n=50, samples=1000):
 	Z = []
 	for i in range(samples):
 	
-		data = simulation(n=n,show = False)
+		data = simulation(n=n,show = True)
 		S.append(data[0])
 		I.append(data[1])
 		R.append(data[2])
 		Z.append(data[3])
+		print(i+1)
 	SUS = np.array(S)
 	INF = np.array(I)
 	REC = np.array(R)
 	ZOM = np.array(Z)
+
 	return SUS,INF,REC,ZOM
 
 
