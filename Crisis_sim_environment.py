@@ -339,7 +339,11 @@ def end_pop(n=50, samples=1000):
 		I.append(data[1])
 		R.append(data[2])
 		Z.append(data[3])
+<<<<<<< Updated upstream
 		print(i+1)
+=======
+		print(i)
+>>>>>>> Stashed changes
 	SUS = np.array(S)
 	INF = np.array(I)
 	REC = np.array(R)
