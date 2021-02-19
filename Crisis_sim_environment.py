@@ -71,7 +71,7 @@ def infectPopulation(population,n=1):
 			
 			person[STATUS]=ZOMBIE
 			zombies.append(person)
-			n-=1
+			n-=1 
 
 def display(population,food_spots):
 	
@@ -355,6 +355,38 @@ def end_pop(n=50, samples=1000):
 	return SUS,INF,REC,ZOM
 
 
-a = end_pop()
-print(a)
-print(q_matrix)
+
+# Basic stacked area chart for a population without learning.
+data=simulation(show=False)
+p=range(len(data[0]))
+plt.stackplot(p,data, labels=['S','I','R','Z'],colors=[SUSCEPTIBLE,INFECTED,RECOVERED,ZOMBIE])
+plt.legend(loc='upper left')
+plt.xlabel('step count')
+plt.ylabel('population')
+plt.title('SIRZ Simulation Sans Learning')
+plt.show()
+
+a,b,c,d = end_pop()
+X_values=[]
+Y_values=[]
+for n in range(1000):
+    X_values.append(n)
+Y_values.append(a[0])
+
+
+# Basic stacked area chart for a population with learning
+data=simulation(show=False)
+p=range(len(data[0]))
+plt.stackplot(p,data, labels=['S','I','R','Z'],colors=[SUSCEPTIBLE,INFECTED,RECOVERED,ZOMBIE])
+plt.legend(loc='upper left')
+plt.xlabel('step count')
+plt.ylabel('population')
+plt.title('SIRZ Simulation With Learning')
+plt.show()
+
+
+plt.plot(X_values,Y_values,".")
+plt.xlabel('Episode #')
+plt.ylabel('Suseptible Population')
+plt.title('SIRZ Model Simulating Pandemic End Populations')
+plt.show()
