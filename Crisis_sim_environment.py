@@ -41,6 +41,7 @@ infectionsRate = 0.75
 
 def getPopulation(n):
 	
+	pos_matrix = np.zeros((20,20),dtype = int)
 	population=[]
 	
 	while(n>0):
@@ -106,6 +107,9 @@ def display(population,food_spots):
 	turtle.update()
 	
 def step(population,infectionRadius,infectionRate):
+	environment_matrix = np.zeros((20,20,6),dtype = float)
+	for x in range(20):
+		environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][1]=environment_matrix[x][19][3] = None
 	for Y in pos_matrix:
 		for X in pos_matrix:
 			if pos_matrix[Y][X].all== 1:
@@ -114,6 +118,9 @@ def step(population,infectionRadius,infectionRate):
 		if person[STATUS] == ZOMBIE:
 			x,y,_,_ = person
 			environment_matrix[Y][X-1][4]=environment_matrix[Y][X+1][4]=environment_matrix[Y-1][X][4]=environment_matrix[Y+1][X][4]=50
+	for i in food_spots:
+		food_x,food_y,_,_ = i
+		environment_matrix[food_y][food_x][5] = 100
 	for person in population:
 
 		if person[STATUS] == SUSCEPTIBLE or person[STATUS] == INFECTED:
@@ -320,7 +327,7 @@ def duration(n=50,samples=1000):
 		
 		data=simulation(n=n,show=False)
 		m.append(data)
-		print(data)
+		print(i)
 		
 	m.sort()
 	
@@ -334,30 +341,20 @@ def end_pop(n=50, samples=1000):
 	Z = []
 	for i in range(samples):
 	
-		data = simulation(n=n,show = True)
+		data = simulation(n=n,show = False)
 		S.append(data[0])
 		I.append(data[1])
 		R.append(data[2])
 		Z.append(data[3])
 		print(i+1)
-	SUS = np.array(S)
-	INF = np.array(I)
-	REC = np.array(R)
-	ZOM = np.array(Z)
+	SUS = np.array(S,dtype=object)
+	INF = np.array(I,dtype=object)
+	REC = np.array(R,dtype=object)
+	ZOM = np.array(Z,dtype=object)
 
 	return SUS,INF,REC,ZOM
 
 
-X_values=[]
-Y_values=[]
-for n in range(1000):
-	X_values.append(n)
-Y_values.append(end_pop(n=50,samples=1000))
-
-
-
-plt.plot(X_values,Y_values,".")
-plt.xlabel('Population Size')
-plt.ylabel('Duration (au)')
-plt.title('SIR Model Simulating Pandemic Duration')
-plt.show()
+a = end_pop()
+print(a)
+print(q_matrix)
