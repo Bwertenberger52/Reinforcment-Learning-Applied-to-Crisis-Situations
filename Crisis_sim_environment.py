@@ -16,10 +16,13 @@ pos_matrix = np.zeros((20,20),dtype = int)
 
 food_spots = []
 gathered = False
-ftime = 10
+ftime = 4
+next_state_recc = []
+goal = 0
+hunger_bonus = 1
 for x in range(20):
 
-	environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][1]=environment_matrix[x][19][3] = None
+	environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][3]=environment_matrix[x][19][1] = None
 
 for i in range(15):
 
@@ -44,7 +47,10 @@ STATUS=2
 n=25
 infectionsRaduis = 20
 infectionRate = .5
-
+explore = .25
+discount = .7
+learning_rate = .4
+future = 0
 
 def getPopulation(n):
 	
@@ -128,14 +134,13 @@ def display(population,food_spots):
 		
 	turtle.update()
 	
-	
 def step(population,infectionRadius,infectionRate):
-	
+	recover_count = 0
 	environment_matrix = np.zeros((20,20,6),dtype = float)
 	
 	for x in range(20):
 	
-		environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][1]=environment_matrix[x][19][3] = None
+		environment_matrix[0][x][0]=environment_matrix[19][x][2]=environment_matrix[x][0][3]=environment_matrix[x][19][1] = None
 	
 	for Y in pos_matrix:
 	
@@ -143,19 +148,30 @@ def step(population,infectionRadius,infectionRate):
 	
 			if pos_matrix[Y][X].all== 1:
 	
-				environment_matrix[Y][X-1][1]=environment_matrix[Y][X+1][3]=environment_matrix[Y-1][X][2]=environment_matrix[Y+1][X][0]=None
+				environment_matrix[Y][X-1][3]=environment_matrix[Y][X+1][1]=environment_matrix[Y-1][X][0]=environment_matrix[Y+1][X][2]=None
 	
 	for person in population:
 	
 		if person[STATUS] == ZOMBIE:
-	
-			x,y,_,_ = person
-			environment_matrix[Y][X-1][4]=environment_matrix[Y][X+1][4]=environment_matrix[Y-1][X][4]=environment_matrix[Y+1][X][4]=50
-	
+			global hunger_bonus
+			x,y,_,timer = person
+			environment_matrix[Y][X-1][4]=environment_matrix[Y][X+1][4]=environment_matrix[Y-1][X][4]=environment_matrix[Y+1][X][4]=100
+			if (timer <= 10):
+				hunger_bonus = 4
+			else:
+				hunger_bonus = 1
 	for i in food_spots:
 	
 		food_x,food_y,_,_ = i
-		environment_matrix[food_y][food_x][5] = 200
+		environment_matrix[food_y][food_x][5] = 200*hunger_bonus
+		if (food_y>0):
+			environment_matrix[food_y-1][food_x][0] = 50
+		if (food_y<19):
+			environment_matrix[food_y+1][food_x][2] = 50
+		if (food_x>0):
+			environment_matrix[food_y][food_x-1][3] = 50
+		if (food_x<19):
+			environment_matrix[food_y][food_x+1][1] = 50
 	
 	for person in population:
 
@@ -164,9 +180,6 @@ def step(population,infectionRadius,infectionRate):
 			x,y,status,timer=person
 			x_index = int((x+200)/20)
 			y_index = int((y+200)/20)
-			explore = .08
-			discount = .5
-			learning_rate = .1
 			possible_actions = getAllPossibleNextAction(x_index,y_index)
 			possible_actions_values = []
 
@@ -195,11 +208,9 @@ def step(population,infectionRadius,infectionRate):
 				fight(person, population, infectionRadius, infectionRate)
 	
 			if act_type == 2:
-	
 				timer = gather(person,food_spots)
 	
-			q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + learning_rate * (environment_matrix[y_index][x_index][action] + discount * max(q_matrix[next_state[0],next_state[1]]) - q_matrix[y_index][x_index][action])
-			
+			q_matrix[y_index][x_index][action] = q_matrix[y_index][x_index][action] + (learning_rate * (environment_matrix[y_index][x_index][action] + (discount * recursive_action_values(x_index,y_index)) - q_matrix[y_index][x_index][action]))
 			person[0] = (next_state[0]*20)-200
 			person[1] = (next_state[1]*20)-200
 			expose(person,population,infectionRadius,infectionRate)
@@ -208,6 +219,7 @@ def step(population,infectionRadius,infectionRate):
 			if person[3] == 0:
 	
 				person[2] = RECOVERED
+				recover_count += 1
 	
 			if (person[STATUS]==INFECTED):
 	
@@ -264,10 +276,6 @@ def step(population,infectionRadius,infectionRate):
 						person[0]=x
 						person[1]=y
 			
-			
-			
-
-
 def getAllPossibleNextAction(cur_x,cur_y):
 
 	action = []
@@ -292,7 +300,6 @@ def getAllPossibleNextAction(cur_x,cur_y):
 	action.append((5,q_matrix[cur_y][cur_x][5]))
 
 	return action
-		
 		
 def getNextState(cur_x, cur_y, action):
 
@@ -319,6 +326,8 @@ def getNextState(cur_x, cur_y, action):
 	elif (action == 5):
 
 		return [cur_x,cur_y],2
+	else:
+		return [-1,-1],-1
 		
 def gather(person,food_spots):
 
@@ -340,11 +349,9 @@ def gather(person,food_spots):
 		else:
 
 			i[2] = False
-			i[3] = 10
+			i[3] = 4
 
 		return timer
-
-
 		
 def expose(person,population,infectionRadius,infectionRate):
 	
@@ -363,9 +370,6 @@ def expose(person,population,infectionRadius,infectionRate):
 				person[STATUS]=INFECTED
 				break
 				
-	
-	
-	
 def fight(person,population, infectionRadius, infectionRate):
 	
 	x,y,status,_=person
@@ -405,11 +409,19 @@ def census(population):
 		
 	return s,i,r,z
 
+def recursive_action_values(cur_x, cur_y,goal=0):
+	a = getAllPossibleNextAction(cur_x, cur_y)
+	possible_actions_values =[]
+	for i in a:
+		possible_actions_values.append(i[1])
+
+	goal = max(possible_actions_values)
+	return goal
 def simulation(n=25,InitialInfectionCount=1,infectionRadius=20,infectionRate=.25,show=True):
 
 	count = 0 
 	population=getPopulation(n)
-	#infectPopulation(population,n=InitialInfectionCount)
+	infectPopulation(population,n=InitialInfectionCount)
 	s,i,r,z=census(population)
 	S=[s]
 	I=[i]
@@ -430,15 +442,13 @@ def simulation(n=25,InitialInfectionCount=1,infectionRadius=20,infectionRate=.25
 			display(population,food_spots)
 
 		count += 1
-		"((Z[-1]==0) and (I[-1]==0))" 
-		if(((S[-1]==0) and (I[-1]==0)) or count>=3000 ):
+		
+		if(((S[-1]==0) and (I[-1]==0)) or ((Z[-1]==0) and (I[-1]==0))):
 
 			break
 			
 	return S,I,R,Z,count
 	
-
-
 def duration(n=25,samples=1000):
 	
 	m=[]
@@ -453,7 +463,7 @@ def duration(n=25,samples=1000):
 	
 	return m[samples//2],m[samples.max()]
 
-def end_pop(n=25, samples=1000):
+def end_pop(n=25, samples=100):
 	
 	S = []
 	I = []
@@ -494,7 +504,7 @@ def end_pop(n=25, samples=1000):
 
 
 # Basic stacked area chart for a population without learning.
-a,b,c,d,_=simulation(show= True)
+a,b,c,d,_=simulation(show= False)
 p=range(len(a))
 plt.stackplot(p,(a,b,c,d), labels=['S','I','R','Z'],colors=[SUSCEPTIBLE,INFECTED,RECOVERED,ZOMBIE])
 plt.legend(loc='upper left')
@@ -510,7 +520,7 @@ Y1_values=[]
 Y2_values=[]
 Y3_values=[]
 
-for n in range(1000):
+for n in range(100):
 
     X_values.append(n)
     Y1_values.append(a[n][-1])
